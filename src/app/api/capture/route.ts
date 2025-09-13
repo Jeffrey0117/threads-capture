@@ -393,9 +393,9 @@ export async function POST(request: NextRequest) {
           };
         });
 
-        // 生成高品質截圖 - 確保足夠大的尺寸
-        const minWidth = 1000; // 提高最小寬度
-        const minHeight = 500; // 提高最小高度
+        // 生成高品質截圖 - 智能擴展內容區塊
+        const minWidth = 600; // 降低最小寬度
+        const minHeight = 300; // 降低最小高度
         const maxWidth = 1200;
         const maxHeight = 630;
 
@@ -406,20 +406,29 @@ export async function POST(request: NextRequest) {
           height: articleData.height,
         };
 
-        // 如果內容區塊太小，截取更大的區域
+        // 如果內容區塊太小，適度擴展
         if (articleData.width < minWidth || articleData.height < minHeight) {
-          // 擴展到更大的區域，確保至少 1000x500
+          // 計算需要擴展的大小，但不要過度擴展
+          const widthShortage = Math.max(0, minWidth - articleData.width);
+          const heightShortage = Math.max(0, minHeight - articleData.height);
+
+          // 保守擴展：左右各擴展寬度不足的一半，上下各擴展高度不足的一半
+          const leftExpand = Math.min(30, Math.floor(widthShortage * 0.4));
+          const rightExpand = Math.min(30, Math.floor(widthShortage * 0.6));
+          const topExpand = Math.min(20, Math.floor(heightShortage * 0.4));
+          const bottomExpand = Math.min(40, Math.floor(heightShortage * 0.6));
+
           clipRegion = {
-            x: Math.max(0, articleData.x - 100), // 更多左邊距
-            y: Math.max(0, articleData.y - 50), // 更多上邊距
+            x: Math.max(0, articleData.x - leftExpand),
+            y: Math.max(0, articleData.y - topExpand),
             width: Math.min(
               maxWidth,
-              Math.max(minWidth, articleData.width + 200)
-            ), // 更多右邊距
+              articleData.width + leftExpand + rightExpand
+            ),
             height: Math.min(
               maxHeight,
-              Math.max(minHeight, articleData.height + 100)
-            ), // 更多下邊距
+              articleData.height + topExpand + bottomExpand
+            ),
           };
         }
 
@@ -494,6 +503,7 @@ export async function POST(request: NextRequest) {
       description,
       hasScreenshot,
       renderMethod,
+      imageUrl: hasScreenshot ? `${domain}${imagePath}` : null, // 包含完整圖片 URL
     });
   } catch (error) {
     console.error("處理失敗:", error);
