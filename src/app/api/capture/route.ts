@@ -365,11 +365,11 @@ export async function POST(request: NextRequest) {
           };
         });
 
-        // 生成高品質截圖 - 確保最小尺寸
-        const minWidth = 800;
-        const minHeight = 400;
-        const targetWidth = 1200;
-        const targetHeight = 630;
+        // 生成高品質截圖 - 確保足夠大的尺寸
+        const minWidth = 1000; // 提高最小寬度
+        const minHeight = 500; // 提高最小高度
+        const maxWidth = 1200;
+        const maxHeight = 630;
 
         let clipRegion = {
           x: Math.max(0, articleData.x),
@@ -378,14 +378,20 @@ export async function POST(request: NextRequest) {
           height: articleData.height,
         };
 
-        // 如果內容區塊太小，嘗試截取更大的區域
+        // 如果內容區塊太小，截取更大的區域
         if (articleData.width < minWidth || articleData.height < minHeight) {
-          // 截取更大的區域，包含更多上下文
+          // 擴展到更大的區域，確保至少 1000x500
           clipRegion = {
-            x: Math.max(0, articleData.x - 50), // 向左擴展
-            y: Math.max(0, articleData.y - 30), // 向上擴展
-            width: Math.min(targetWidth, articleData.width + 100), // 向右擴展
-            height: Math.min(targetHeight, articleData.height + 60), // 向下擴展
+            x: Math.max(0, articleData.x - 100), // 更多左邊距
+            y: Math.max(0, articleData.y - 50), // 更多上邊距
+            width: Math.min(
+              maxWidth,
+              Math.max(minWidth, articleData.width + 200)
+            ), // 更多右邊距
+            height: Math.min(
+              maxHeight,
+              Math.max(minHeight, articleData.height + 100)
+            ), // 更多下邊距
           };
         }
 
