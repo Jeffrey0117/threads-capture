@@ -427,8 +427,10 @@ export async function POST(request: NextRequest) {
     existingData.push(threadData);
     saveThreadsData(existingData);
 
-    // 返回短連結
-    const domain = process.env.NEXT_PUBLIC_DOMAIN || "http://localhost:3002";
+    // 返回短連結 - 動態獲取當前域名
+    const host = request.headers.get("host") || "localhost:3002";
+    const protocol = host.includes("localhost") ? "http" : "https";
+    const domain = `${protocol}://${host}`;
     const shortUrl = `${domain}/short/${id}`;
 
     return NextResponse.json({

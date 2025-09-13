@@ -5,6 +5,11 @@ import { useState } from "react";
 export default function Home() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<{
+    step: number;
+    message: string;
+    percentage: number;
+  } | null>(null);
   const [result, setResult] = useState<{
     success: boolean;
     shortUrl?: string;
@@ -22,8 +27,39 @@ export default function Home() {
 
     setLoading(true);
     setResult(null);
+    setProgress(null); // 先清除之前的進度
+    setTimeout(
+      () => setProgress({ step: 1, message: "驗證連結...", percentage: 10 }),
+      100
+    );
 
     try {
+      // 模擬進度更新
+      setTimeout(
+        () =>
+          setProgress({ step: 2, message: "啟動瀏覽器...", percentage: 25 }),
+        200
+      );
+      setTimeout(
+        () =>
+          setProgress({
+            step: 3,
+            message: "載入 Threads 頁面...",
+            percentage: 40,
+          }),
+        600
+      );
+      setTimeout(
+        () =>
+          setProgress({ step: 4, message: "提取文章內容...", percentage: 60 }),
+        1200
+      );
+      setTimeout(
+        () =>
+          setProgress({ step: 5, message: "生成預覽圖片...", percentage: 80 }),
+        1800
+      );
+
       const response = await fetch("/api/capture", {
         method: "POST",
         headers: {
@@ -33,9 +69,17 @@ export default function Home() {
       });
 
       const data = await response.json();
-      setResult(data);
+
+      setProgress({ step: 6, message: "完成！", percentage: 100 });
+
+      // 延遲一下顯示完成狀態，然後顯示結果
+      setTimeout(() => {
+        setResult(data);
+        setProgress(null);
+      }, 500);
     } catch (error) {
       setResult({ success: false, error: "處理失敗，請稍後再試" });
+      setProgress(null);
     } finally {
       setLoading(false);
     }
@@ -93,6 +137,20 @@ export default function Home() {
               "Capture"
             )}
           </button>
+
+          {progress && (
+            <div className="mt-4">
+              <div className="bg-gray-200 rounded-full h-2 mb-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${progress.percentage}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-600 text-center">
+                {progress.step}/6: {progress.message}
+              </p>
+            </div>
+          )}
         </form>
 
         {result && (
