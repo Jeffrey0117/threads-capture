@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import fs from "fs";
 import path from "path";
 
@@ -47,7 +48,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const domain = process.env.NEXT_PUBLIC_DOMAIN || "http://localhost:3000";
+  // 動態獲取當前域名
+  const headersList = await headers();
+  const host = headersList.get("host") || "localhost:3002";
+  const protocol = host.includes("localhost") ? "http" : "https";
+  const domain = `${protocol}://${host}`;
+
   const imageUrl = `${domain}${thread.image}`;
   const shortUrl = `${domain}/short/${thread.id}`;
 
@@ -92,6 +98,12 @@ export default async function ShortLinkPage({ params }: Props) {
     );
   }
 
+  // 動態獲取當前域名
+  const headersList = await headers();
+  const host = headersList.get("host") || "localhost:3002";
+  const protocol = host.includes("localhost") ? "http" : "https";
+  const domain = `${protocol}://${host}`;
+
   // 使用 HTML meta refresh 進行延遲重定向，讓社群媒體爬蟲有時間讀取 Meta 標籤
   return (
     <html>
@@ -102,28 +114,13 @@ export default async function ShortLinkPage({ params }: Props) {
         <meta name="description" content={thread.description} />
         <meta property="og:title" content={thread.title} />
         <meta property="og:description" content={thread.description} />
-        <meta
-          property="og:image"
-          content={`${
-            process.env.NEXT_PUBLIC_DOMAIN || "http://localhost:3002"
-          }${thread.image}`}
-        />
-        <meta
-          property="og:url"
-          content={`${
-            process.env.NEXT_PUBLIC_DOMAIN || "http://localhost:3002"
-          }/short/${thread.id}`}
-        />
+        <meta property="og:image" content={`${domain}${thread.image}`} />
+        <meta property="og:url" content={`${domain}/short/${thread.id}`} />
         <meta property="og:type" content="article" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={thread.title} />
         <meta name="twitter:description" content={thread.description} />
-        <meta
-          name="twitter:image"
-          content={`${
-            process.env.NEXT_PUBLIC_DOMAIN || "http://localhost:3002"
-          }${thread.image}`}
-        />
+        <meta name="twitter:image" content={`${domain}${thread.image}`} />
       </head>
       <body>
         <div
