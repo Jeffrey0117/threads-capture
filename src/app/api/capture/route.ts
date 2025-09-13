@@ -365,21 +365,41 @@ export async function POST(request: NextRequest) {
           };
         });
 
-        // 生成高品質截圖
+        // 生成高品質截圖 - 確保最小尺寸
+        const minWidth = 800;
+        const minHeight = 400;
+        const targetWidth = 1200;
+        const targetHeight = 630;
+
+        let clipRegion = {
+          x: Math.max(0, articleData.x),
+          y: Math.max(0, articleData.y),
+          width: articleData.width,
+          height: articleData.height,
+        };
+
+        // 如果內容區塊太小，嘗試截取更大的區域
+        if (articleData.width < minWidth || articleData.height < minHeight) {
+          // 截取更大的區域，包含更多上下文
+          clipRegion = {
+            x: Math.max(0, articleData.x - 50), // 向左擴展
+            y: Math.max(0, articleData.y - 30), // 向上擴展
+            width: Math.min(targetWidth, articleData.width + 100), // 向右擴展
+            height: Math.min(targetHeight, articleData.height + 60), // 向下擴展
+          };
+        }
+
         screenshotBuffer = await page.screenshot({
           type: "png",
-          clip: {
-            x: Math.max(0, articleData.x),
-            y: Math.max(0, articleData.y),
-            width: articleData.width,
-            height: articleData.height,
-          },
+          clip: clipRegion,
         });
 
         console.log(
           `使用 Puppeteer 高品質截圖 (2x 解析度): ${
             articleData.found ? "文章內容區塊" : "全頁回退"
-          }, 尺寸: ${articleData.width}x${articleData.height}`
+          }, 原始尺寸: ${articleData.width}x${
+            articleData.height
+          }, 最終截圖尺寸: ${clipRegion.width}x${clipRegion.height}`
         );
       }
     } finally {
