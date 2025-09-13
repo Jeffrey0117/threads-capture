@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meta 標籤檢查器</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .input-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #555;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+        margin-bottom: 20px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+      }
+      .results {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 5px;
+        border-left: 4px solid #007bff;
+      }
+      .meta-tag {
+        background: #e9ecef;
+        padding: 8px;
+        margin: 5px 0;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 14px;
+        word-break: break-all;
+      }
+      .preview {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background: white;
+      }
+      .preview h3 {
+        margin: 0 0 10px 0;
+        color: #1877f2;
+        font-size: 18px;
+      }
+      .preview p {
+        margin: 0 0 10px 0;
+        color: #666;
+        font-size: 14px;
+      }
+      .preview img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 5px;
+      }
+      .error {
+        color: #dc3545;
+        background: #f8d7da;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+      .success {
+        color: #155724;
+        background: #d4edda;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+      .info {
+        background: #e3f2fd;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        border-left: 4px solid #2196f3;
+      }
+      .status-good {
+        color: green;
+        font-weight: bold;
+      }
+      .status-bad {
+        color: red;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔍 Meta 標籤檢查器 (無 CORS 版本)</h1>
+
+      <div class="input-group">
+        <label for="urlInput">輸入短連結 URL：</label>
+        <input
+          type="text"
+          id="urlInput"
+          placeholder="http://localhost:3002/short/772y6ge5"
+          value="http://localhost:3002/short/772y6ge5"
+        />
+      </div>
+
+      <button id="checkBtn" onclick="checkMeta()">檢查 Meta 標籤</button>
+
+      <div id="results"></div>
+    </div>
+
+    <script>
+      async function checkMeta() {
+        const url = document.getElementById("urlInput").value;
+        const resultsDiv = document.getElementById("results");
+        const checkBtn = document.getElementById("checkBtn");
+
+        if (!url) {
+          resultsDiv.innerHTML = '<div class="error">請輸入 URL</div>';
+          return;
+        }
+
+        checkBtn.disabled = true;
+        checkBtn.textContent = "檢查中...";
+        resultsDiv.innerHTML = "<p>檢查中... (使用後端 API 避免 CORS 問題)</p>";
+
+        try {
+          // 使用後端 API 檢查 Meta 標籤
+          const response = await fetch("/api/check-meta", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ url }),
+          });
+
+          const data = await response.json();
+
+          if (!data.success) {
+            resultsDiv.innerHTML = `<div class="error">錯誤: ${
+              data.error
+            }<br>狀態碼: ${data.statusCode || "N/A"}</div>`;
+            return;
+          }
+
+          const { metaTags, imageStatus, statusCode, url: finalUrl } = data;
+
+          let html_result = `
+                    <div class="results">
+                        <h2>📋 Meta 標籤檢查結果</h2>
+                        
+                        <div class="info">
+                            <strong>檢查 URL:</strong> ${url}<br>
+                            <strong>最終 URL:</strong> ${finalUrl}<br>
+                            <strong>HTTP 狀態:</strong> <span class="status-good">${statusCode}</span><br>
+                            <strong>圖片狀態:</strong> <span class="${
+                              imageStatus === "存在"
+                                ? "status-good"
+                                : "status-bad"
+                            }">${imageStatus}</span>
+                        </div>
+                        
+                        <h3>基本標籤：</h3>
+                        <div class="meta-tag">&lt;title&gt;${
+                          metaTags.title
+                        }&lt;/title&gt;</div>
+                        <div class="meta-tag">&lt;meta name="description" content="${
+                          metaTags.description
+                        }"/&gt;</div>
+                        
+                        <h3>Open Graph 標籤：</h3>
+                        <div class="meta-tag">&lt;meta property="og:title" content="${
+                          metaTags.ogTitle
+                        }"/&gt;</div>
+                        <div class="meta-tag">&lt;meta property="og:description" content="${
+                          metaTags.ogDescription
+                        }"/&gt;</div>
+                        <div class="meta-tag">&lt;meta property="og:image" content="${
+                          metaTags.ogImage
+                        }"/&gt;</div>
+                        <div class="meta-tag">&lt;meta property="og:url" content="${
+                          metaTags.ogUrl
+                        }"/&gt;</div>
+                        <div class="meta-tag">&lt;meta property="og:type" content="${
+                          metaTags.ogType
+                        }"/&gt;</div>
+                        
+                        <h3>Twitter Card 標籤：</h3>
+                        <div class="meta-tag">&lt;meta name="twitter:card" content="${
+                          metaTags.twitterCard
+                        }"/&gt;</div>
+                        <div class="meta-tag">&lt;meta name="twitter:title" content="${
+                          metaTags.twitterTitle
+                        }"/&gt;</div>
+                        <div class="meta-tag">&lt;meta name="twitter:description" content="${
+                          metaTags.twitterDescription
+                        }"/&gt;</div>
+                        <div class="meta-tag">&lt;meta name="twitter:image" content="${
+                          metaTags.twitterImage
+                        }"/&gt;</div>
+                        
+                        <div class="preview">
+                            <h2>📱 社群媒體預覽</h2>
+                            <h3>${metaTags.ogTitle}</h3>
+                            <p>${metaTags.ogDescription}</p>
+                            <p><strong>URL:</strong> ${metaTags.ogUrl}</p>
+                            <p><strong>圖片:</strong> ${metaTags.ogImage} 
+                                <span class="${
+                                  imageStatus === "存在"
+                                    ? "status-good"
+                                    : "status-bad"
+                                }">(${imageStatus})</span>
+                            </p>
+                            ${
+                              metaTags.ogImage &&
+                              metaTags.ogImage !== "未找到 OG 圖片" &&
+                              imageStatus === "存在"
+                                ? `<img src="${metaTags.ogImage}" alt="預覽圖片" style="max-width: 100%; height: auto; border-radius: 5px;">`
+                                : `<div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 5px;">⚠️ 圖片不存在或無法載入</div>`
+                            }
+                        </div>
+                        
+                        <div class="success">
+                            ✅ Meta 標籤檢查完成！所有標籤都已正確設定。
+                        </div>
+                    </div>
+                `;
+
+          resultsDiv.innerHTML = html_result;
+        } catch (error) {
+          resultsDiv.innerHTML = `<div class="error">網路錯誤: ${error.message}</div>`;
+        } finally {
+          checkBtn.disabled = false;
+          checkBtn.textContent = "檢查 Meta 標籤";
+        }
+      }
+
+      // 頁面載入時自動檢查
+      window.onload = function () {
+        checkMeta();
+      };
+    </script>
+  </body>
+</html>
