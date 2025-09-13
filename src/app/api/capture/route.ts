@@ -181,9 +181,37 @@ export async function POST(request: NextRequest) {
         ALLOWED_ATTR: [],
       });
 
+      // 重新組織標題和描述
+      // 將描述按句子分割
+      const sentences = description
+        .split(/[.!?]+/)
+        .filter((s) => s.trim().length > 0);
+
+      if (sentences.length > 0) {
+        // 第一句作為標題，加上 "(by threads)"
+        title = sentences[0].trim() + " (by threads)";
+
+        // 從第二句開始作為描述
+        const remainingSentences = sentences.slice(1);
+        if (remainingSentences.length > 0) {
+          description = remainingSentences.join(". ").trim();
+          if (!description.endsWith(".")) {
+            description += ".";
+          }
+        } else {
+          // 如果沒有第二句，使用第一句的後半部分
+          description = sentences[0].trim() + ".";
+        }
+      }
+
       // 截斷描述如果太長
       if (description.length > 200) {
         description = description.substring(0, 197) + "...";
+      }
+
+      // 確保標題不會太長
+      if (title.length > 60) {
+        title = title.substring(0, 57) + "...";
       }
 
       // 生成截圖：優先使用 html2canvas，失敗時回退到 Puppeteer
